@@ -20,7 +20,7 @@ struct pstat pstat;
 int nextpid = 1;
 struct spinlock pid_lock;
 
-int totaltickets=0;
+int totaltickets = 0;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -33,35 +33,33 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
-
-int settickets(int number){
+int settickets(int number) {
   struct proc *p = myproc();
   totaltickets = totaltickets - p->tickets;
-  p->tickets= number;
+  p->tickets = number;
   totaltickets = totaltickets + number;
-  for (int i = 0 ; i < NPROC ; i++){
-    if ((&pstat)->pid[i] == p->pid){
+  for (int i = 0; i < NPROC; i++) {
+    if ((&pstat)->pid[i] == p->pid) {
       (&pstat)->tickets[i] = number;
     }
   }
-  
+
   return 0;
 }
 
-int getpinfo(){
-  
+int getpinfo() {
+
   int i;
-  for(i=0;i<NPROC ;i++){
-    if ((&pstat)->inuse[i]){
-      printf("\npid=%d",(&pstat)->pid[i]);
-      printf(" tickets=%d",(&pstat)->tickets[i]);
-      printf(" inuse=%d",(&pstat)->inuse[i]);
-      printf(" ticks=%d\n",(&pstat)->ticks[i]);
+  for (i = 0; i < NPROC; i++) {
+    if ((&pstat)->inuse[i]) {
+      printf("\npid=%d", (&pstat)->pid[i]);
+      printf(" tickets=%d", (&pstat)->tickets[i]);
+      printf(" inuse=%d", (&pstat)->inuse[i]);
+      printf(" ticks=%d\n", (&pstat)->ticks[i]);
     }
-    
   }
-  printf("\n%d total tickets",totaltickets);
-  return 0; 
+  printf("\n%d total tickets", totaltickets);
+  return 0;
 }
 
 // Allocate a page for each process's kernel stack.
@@ -84,12 +82,19 @@ void procinit(void) {
   struct proc *p;
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
-  for (p = proc; p < &proc[NPROC]; p++) {
+  int i ;
+  for (i=0,p = proc; p < &proc[NPROC]; p++,i++) {
     initlock(&p->lock, "proc");
     p->state = UNUSED;
     p->kstack = KSTACK((int)(p - proc));
+    (&pstat)->inuse[i]=0;
+    (&pstat)->tickets[i]=0;
+    (&pstat)->ticks[i]=0;
+    (&pstat)->pid[i]=-1;
     
   }
+  totaltickets=0;
+
 }
 
 // Must be called with interrupts disabled,
@@ -134,8 +139,8 @@ int allocpid() {
 // If there are no free procs, or a memory allocation fails, return 0.
 static struct proc *allocproc(void) {
   struct proc *p;
-  int i; 
-  for ( i = 0 ,p = proc; p < &proc[NPROC]; i++,p++) {
+  int i;
+  for (i = 0, p = proc; p < &proc[NPROC]; i++, p++) {
     acquire(&p->lock);
     if (p->state == UNUSED) {
       goto found;
@@ -147,16 +152,20 @@ static struct proc *allocproc(void) {
 
 found:
   p->pid = allocpid();
-  for (int j = 0 ; j < NPROC ; j++){
-    if (!(&pstat)->inuse[j]){
-      (&pstat)->pid[i] = p->pid;
-      (&pstat)->inuse[i] = 1;
-      (&pstat)->ticks[i] = 0;
-      int random = scaled_random(1,10);
-      (&pstat)->tickets[i] = random;
+  p->state = USED;
+  for (int j = 0; j < NPROC; j++) {
+    if (!(&pstat)->inuse[j]) {
+      (&pstat)->pid[j] = p->pid;
+      (&pstat)->inuse[j] = 1;
+      (&pstat)->ticks[j] = 0;
+
+      int random = scaled_random(1, 5);
+
+      (&pstat)->tickets[j] = random;
+      (&pstat)->proc_index[j]=i;
       p->tickets = random;
-      totaltickets= totaltickets + random;
-      break;    
+      totaltickets = totaltickets + random;
+      break;
     }
   }
   // rand_init(17);
@@ -166,9 +175,8 @@ found:
   // (&pstat)->tickets[i] = random;
   // p->tickets = random;
   // totaltickets= totaltickets + random;
-  // // printf("\n now %d total tickets from allocproc ( %d new tickets)\n",totaltickets,random);
-
-  p->state = USED;
+  // // printf("\n now %d total tickets from allocproc ( %d new
+  // tickets)\n",totaltickets,random);
 
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
@@ -205,13 +213,13 @@ static void freeproc(struct proc *p) {
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
   p->sz = 0;
-  for (int i = 0 ; i < NPROC ; i++){
-    if ((&pstat)->pid[i]==p->pid){
+  for (int i = 0; i < NPROC; i++) {
+    if ((&pstat)->pid[i] == p->pid && (&pstat)->inuse[i]) {
 
       totaltickets = totaltickets - (&pstat)->tickets[i];
-      (&pstat)->inuse[i]=0;
+      (&pstat)->inuse[i] = 0;
       (&pstat)->tickets[i] = 0;
-      // (&pstat)->pid[i]=0;
+      (&pstat)->pid[i]=-1;
       break;
     }
   }
@@ -278,7 +286,7 @@ uchar initcode[] = {0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02, 0x97,
 // Set up first user process.
 void userinit(void) {
   struct proc *p;
-  
+
   p = allocproc();
   initproc = p;
   // initproc->tickets=1;
@@ -370,7 +378,7 @@ int fork(void) {
   np->tickets = p->tickets;
   // for (i=0; i < NPROC ; i++){
   //   if ((&pstat)->pid[i]==np->pid){
-  //     (&pstat)->tickets[i] = np->tickets; 
+  //     (&pstat)->tickets[i] = np->tickets;
   //   }
   // }
   release(&np->lock);
@@ -500,11 +508,11 @@ void scheduler(void) {
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    for (p = proc,i=0; p < &proc[NPROC]; p++,i++) {
-      
+    for (p = proc, i = 0; p < &proc[NPROC]; p++, i++) {
+
       acquire(&p->lock);
       if (p->state == RUNNABLE) {
-        
+
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -521,38 +529,41 @@ void scheduler(void) {
   }
 }
 
-
-void lotteryscheduler(void){
+void lotteryscheduler(void) {
   struct proc *p;
   struct cpu *c = mycpu();
-  c->proc=0;
+  c->proc = 0;
   rand_init(17);
-  for(;;){
-    intr_on(); 
+  for (;;) {
+    intr_on();
     int i = 0;
-    int random = scaled_random(0,totaltickets); //generate random number between 0 and the total number of tickets
-    while(random > 0){
-      if ((&pstat)->inuse[i]){
+    int random =
+    scaled_random(0, totaltickets); // generate random number between 0 and
+                                        // the total number of tickets
+    while (random > 0) {
+      if ((&pstat)->inuse[i]) {
         random = random - (&pstat)->tickets[i];
       }
-      if (random > 0 ){
+      if (random > 0) {
         i++;
       }
     }
-    p = &proc[i];
+    p = &proc[(&pstat)->proc_index[i]];
     acquire(&p->lock);
-    if (p->state == RUNNABLE){
+    if (p->state == RUNNABLE) {
       p->state = RUNNING;
       c->proc = p;
       (&pstat)->ticks[i]++;
-      swtch(&c->context,&p->context);
-      c->proc=0;
+      // if (p->pid >= 3) {
+      //   printf("\n%d %d %d\n", (&pstat)->ticks[i], (&pstat)->pid[i],
+      //          (&pstat)->tickets[i]);
+      // }
+      swtch(&c->context, &p->context);
+      c->proc = 0;
     }
     release(&p->lock);
   }
 }
-
-
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
@@ -655,7 +666,7 @@ void wakeup(void *chan) {
 int kill(int pid) {
   struct proc *p;
   int i;
-  for (i = 0 ,p = proc; p < &proc[NPROC]; p++,i++) {
+  for (i = 0, p = proc; p < &proc[NPROC]; p++, i++) {
     acquire(&p->lock);
     if (p->pid == pid) {
       p->killed = 1;
@@ -740,14 +751,15 @@ void procdump(void) {
   char *state;
 
   printf("\n");
-  for (p = proc,i = 0; p < &proc[NPROC]; p++,i++) {
+  for (p = proc, i = 0; p < &proc[NPROC]; p++, i++) {
     if (p->state == UNUSED)
       continue;
     if (p->state >= 0 && p->state < NELEM(states) && states[p->state])
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s %d tickets %d ticks %d", p->pid, state, p->name,(&pstat)->pid[i],(&pstat)->tickets[i],(&pstat)->ticks[i]);
+    printf("%d %s %s %d tickets %d ticks %d", p->pid, state, p->name,
+           (&pstat)->pid[i], (&pstat)->tickets[i], (&pstat)->ticks[i]);
     printf("\n");
   }
 }

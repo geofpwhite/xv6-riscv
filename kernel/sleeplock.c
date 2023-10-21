@@ -21,12 +21,12 @@ initsleeplock(struct sleeplock *lk, char *name)
 void
 acquiresleep(struct sleeplock *lk)
 {
-  acquire(&lk->lk);
-  while (lk->locked) {
+  acquire(&lk->lk); //spinlock has been acquired 
+  while (lk->locked) { //sleep while sleeplock is locked
     sleep(lk, &lk->lk);
   }
-  lk->locked = 1;
-  lk->pid = myproc()->pid;
+  lk->locked = 1; //acquire le lock 
+  lk->pid = myproc()->pid; // for debugging 
   release(&lk->lk);
 }
 
@@ -41,10 +41,9 @@ releasesleep(struct sleeplock *lk)
 }
 
 int
-holdingsleep(struct sleeplock *lk)
+holdingsleep(struct sleeplock *lk) // checks if 
 {
   int r;
-  
   acquire(&lk->lk);
   r = lk->locked && (lk->pid == myproc()->pid);
   release(&lk->lk);

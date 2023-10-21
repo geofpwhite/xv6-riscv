@@ -91,6 +91,7 @@ int             getpinfo(void);
 
 void            proc_mapstacks(pagetable_t);
 pagetable_t     proc_pagetable(struct proc *);
+void            vmprint(pagetable_t,int);
 void            proc_freepagetable(pagetable_t, uint64);
 int             kill(int);
 int             getfilenum(int);
