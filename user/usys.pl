@@ -40,3 +40,4 @@ entry("getfilenum");
 entry("rand_init");
 entry("scaled_random");
 entry("getpinfo");
+entry("pgaccess");

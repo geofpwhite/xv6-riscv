@@ -95,6 +95,7 @@ void            vmprint(pagetable_t,int);
 void            proc_freepagetable(pagetable_t, uint64);
 int             kill(int);
 int             getfilenum(int);
+int             pgaccess(uint64, int, uint64,pagetable_t*);
 int             killed(struct proc*);
 void            setkilled(struct proc*);
 struct cpu*     mycpu(void);

@@ -48,7 +48,6 @@ int settickets(int number) {
 }
 
 int getpinfo() {
-
   int i;
   for (i = 0; i < NPROC; i++) {
     if ((&pstat)->inuse[i]) {
@@ -159,7 +158,7 @@ found:
       (&pstat)->inuse[j] = 1;
       (&pstat)->ticks[j] = 0;
 
-      int random = scaled_random(1, 5);
+      int random = scaled_random(1, 50);
 
       (&pstat)->tickets[j] = random;
       (&pstat)->proc_index[j]=i;
@@ -168,15 +167,6 @@ found:
       break;
     }
   }
-  // rand_init(17);
-  // int random = scaled_random(1,10);
-  // // int random = scaled_random(1,3);
-  // // int random = 1;
-  // (&pstat)->tickets[i] = random;
-  // p->tickets = random;
-  // totaltickets= totaltickets + random;
-  // // printf("\n now %d total tickets from allocproc ( %d new
-  // tickets)\n",totaltickets,random);
 
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
@@ -763,3 +753,4 @@ void procdump(void) {
     printf("\n");
   }
 }
+

@@ -25,3 +25,4 @@
 #define SYS_rand_init 24
 #define SYS_settickets 25
 #define SYS_getpinfo 26
+#define SYS_pgaccess 27

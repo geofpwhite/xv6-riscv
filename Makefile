@@ -137,6 +137,7 @@ UPROGS=\
 	$U/_getfilenum\
 	$U/_useRandom\
 	$U/_ps\
+	$U/_pgacctest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

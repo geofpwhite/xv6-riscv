@@ -20,15 +20,13 @@ void vmprint(pagetable_t table, int level){
     printf("\npage table %p\n",(table));
   }
   else{
-    for (int i = 0 ; i < level ; i++){
-    }
     printf("pa %p\n",table);
   }
   for (int i = 0 ; i < 512; i++){
     pte_t pte = table[i];
 
-    // 
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){ 
+    // this PTE points to a lower-level page table.
       for (int i = 0 ; i < level + 1 ; i++){
         printf("-");
       }
@@ -465,4 +463,28 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+int pgaccess(uint64 va, int limit, uint64 accessBitmap, pagetable_t* pagetable){
+  pagetable_t table = *pagetable;
+  pte_t *pte;
+  int abm=0;
+  for (int i = 0 ; i < limit ; i++){
+    pte = walk(table,(va+(i*PGSIZE)), 0);
+    // printf("%p\n",pte);
+    printf("%d\n",*pte);
+    if(((*pte & PTE_V)&&(*pte & PTE_D) )){
+      printf("\nDirty bit = 1\n");
+      abm = (abm | (1UL<<i));
+      *pte = *pte ^ PTE_A;
+      *pte = *pte ^ PTE_D;
+    } else if(((*pte & PTE_V)&&(*pte & PTE_A) )){
+      abm = (abm | (1UL<<i));
+      *pte = *pte ^ PTE_A;
+      // *pte = *pte ^ PTE_D;
+    }
+    printf("%d\n",*pte);
+  }
+  copyout(table, accessBitmap, (char*) &abm,sizeof(int) * limit);
+  return 0;
 }

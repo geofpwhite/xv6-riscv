@@ -104,3 +104,20 @@ uint64 sys_uptime(void) {
   release(&tickslock);
   return xticks;
 }
+
+uint64 sys_pgaccess(void) {
+  
+  uint64 va;
+  uint64 accessBitmap;
+  int size;
+  struct proc * p = myproc();
+
+  argaddr(0,&va);
+  argint(1,&size);
+  argaddr(2,&accessBitmap);
+  
+  return pgaccess(va,size,accessBitmap,&(p->pagetable));
+  
+  
+
+}
