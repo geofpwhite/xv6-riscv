@@ -483,7 +483,6 @@ int pgaccess(uint64 va, int limit, uint64 accessBitmap, pagetable_t* pagetable){
       *pte = *pte ^ PTE_A;
       // *pte = *pte ^ PTE_D;
     }
-    printf("%d\n",*pte);
   }
   copyout(table, accessBitmap, (char*) &abm,sizeof(int) * limit);
   return 0;
