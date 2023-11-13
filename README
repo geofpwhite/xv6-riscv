@@ -1,10 +1,1 @@
-Changed files are :
-    proc.c
-    proc.h
-    main.c
-    random.c
-    random.h
-    sysproc.c
-    syscall.h
-
-implemented lottery scheduler where each process gets a random number of tickets between 1 and 10
+My files for OS projects. 
